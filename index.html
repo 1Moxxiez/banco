@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Bancário</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Sistema de Banco</h1>
+
+    <section id="cadastro">
+        <h2>Cadastrar Cliente</h2>
+        <input id="nome" placeholder="Nome">
+        <input id="cpf" placeholder="CPF">
+        <input id="saldo" placeholder="Saldo Inicial" type="number">
+        <button onclick="criarCliente()">Criar Cliente</button>
+    </section>
+
+    <section id="operacoes">
+        <h2>Operações</h2>
+        <select id="clienteSelecionado"></select>
+
+        <div>
+            <h3>Depósito</h3>
+            <input id="valorDeposito" type="number" placeholder="Valor">
+            <button onclick="depositar()">Depositar</button>
+        </div>
+
+        <div>
+            <h3>Saque</h3>
+            <input id="valorSaque" type="number" placeholder="Valor">
+            <button onclick="sacar()">Sacar</button>
+        </div>
+
+        <div>
+            <h3>Transferência</h3>
+            <select id="clienteDestino"></select>
+            <input id="valorTransferencia" type="number" placeholder="Valor">
+            <button onclick="transferir()">Transferir</button>
+        </div>
+    </section>
+
+    <section>
+        <h2>Extrato</h2>
+        <button onclick="mostrarExtrato()">Mostrar Extrato</button>
+        <pre id="extratoBox"></pre>
+    </section>
+
+    <script src="banco.js"></script>
+</body>
+</html>

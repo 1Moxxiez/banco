@@ -1,239 +1,258 @@
-// banco registra movimentações maiores que 1000
-// sistema de banco para controlar as transações
-// tem-se agência(s) - mais de uma - um banco tem varias agencias 
-//clientes que fazem operações -> saque, transferencia entre clientes (pix) e deposito
-// exibir o extrato por cliente
-
-
 // =====================================================================
-// SISTEMA SIMPLES DE BANCO
-// =====================================================================
-// Aqui temos a simulação de um banco real:
-// - Pessoas têm saldo e extrato
-// - Elas podem sacar, depositar e transferir
-// - O banco registra todas as movimentações
-// - O Banco Central registra só movimentações acima de R$ 1000
+// SISTEMA SIMPLES DE BANCO (LÓGICA DE CLASSES)
 // =====================================================================
 
-
-
-// ======================================================================
 // CLASSE BANCO CENTRAL
-// ======================================================================
-
-// Essa classe serve para registrar movimentações acima de 1000 reais.
-class bancoCentral{
-    movimentacoesGrandes = [] // lista onde ficam registradas
+class bancoCentral {
+    movimentacoesGrandes = []
 
     movimentacoesAltas(pessoa, valor, tipo){
-        // Se o valor for maior que 1000, registra
         if (valor > 1000){
-            this.movimentacoesGrandes.push({pessoa: pessoa.nome, valor: valor, tipo: tipo})
-            console.log("Uma movimentação de alto valor foi realizada.")
+            this.movimentacoesGrandes.push({
+                pessoa: pessoa.nome,
+                valor: valor,
+                tipo: tipo
+            })
+            console.log("📢 Banco Central: movimentação de alto valor registrada.")
         }
     }
 }
 
-
-
-// ======================================================================
 // CLASSE BANCO
-// ======================================================================
-
-// Classe que representa um banco normal.
-// Ele guarda todas as movimentações, mesmo as pequenas.
-class banco{
-    movimentacoes = []  // lista de todas as operações do banco
-    agencias = []       // lista de agências (não está sendo usada ainda)
+class banco {
+    movimentacoes = []
+    agencias = []
 
     registroMovimentacao(pessoa, valor, tipo){
-        // sempre registra a movimentação
-        this.movimentacoes.push({pessoa: pessoa.nome, valor: valor, tipo: tipo})
-        console.log("Movimentação registrada")
+        this.movimentacoes.push({
+            pessoa: pessoa.nome,
+            valor: valor,
+            tipo: tipo
+        })
+        console.log("💼 Banco: movimentação registrada.")
     }
 }
 
-
-
-// ======================================================================
 // CLASSE AGÊNCIA
-// ======================================================================
+class agencia extends banco {
+    clientes = []
+    nome
+    banco
 
-// Uma agência É UM BANCO, então ela herda tudo de banco.
-class agencia extends banco{
-    clientes = []   // lista de clientes da agência
+    constructor(nome, banco){
+        super()
+        this.nome = nome
+        this.banco = banco
+        banco.agencias.push(this)
+    }
+
+    registrarOperacao(pessoa, valor, tipo){
+        this.movimentacoes.push({
+            pessoa: pessoa.nome,
+            valor: valor,
+            tipo: tipo
+        })
+        this.banco.registroMovimentacao(pessoa, valor, tipo)
+    }
+
+    registrarBancoCentral(bc, pessoa, valor, tipo){
+        bc.movimentacoesAltas(pessoa, valor, tipo)
+    }
 }
 
-
-
-// ======================================================================
 // CLASSE PESSOA
-// ======================================================================
-
-// Representa um cliente do banco: nome, cpf, saldo e extrato
 class pessoa {
     nome
     cpf
-    #saldo   // saldo privado → só a classe pode mexer
+    #saldo
     extrato = []
+    agencia
 
-    constructor(nome, cpf, saldo) {
-        this.nome = nome;
-        this.cpf = cpf;
-        this.#saldo = saldo;
+    constructor(nome, cpf, saldo, agencia){
+        this.nome = nome
+        this.cpf = cpf
+        this.#saldo = Number(saldo) // Garante que é número
+        this.agencia = agencia
+        agencia.clientes.push(this)
     }
 
-    // Getter pra consultar o saldo (não pode mudar por fora)
-    get getSaldo() {
-        return this.#saldo;
+    get getSaldo(){
+        return this.#saldo
     }
 
-
-
-    // ==================================================================
-    // DEPÓSITO
-    // ==================================================================
-    depositar(banco, bancoCentral, valor){
-
-        if (valor<= 0){
-            console.log("Valor indisponível para depósito.")
-        } else {
-
-            // adiciona o valor ao saldo
-            this.#saldo += valor
-
-            // registra no extrato da pessoa
-            this.extrato.push({
-                tipo: "Depósito",
-                valor: valor,
-                saldoAtual: this.#saldo
-            });
+    depositar(valor, bancoCentral){
+        if(valor <= 0){
+            alert("❌ Valor inválido para depósito.")
+            return
         }
 
-        // registra no banco (sempre faz isso)
-        banco.registroMovimentacao(this, valor, "Depósito")
-
-        // verifica se precisa avisar o banco central
-        bancoCentral.movimentacoesAltas(this, valor, "Depósito")
+        this.#saldo += valor
+        this.extrato.push({ tipo: "Depósito", valor: valor, saldoAtual: this.#saldo })
+        this.agencia.registrarOperacao(this, valor, "Depósito")
+        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Depósito")
+        alert("Depósito realizado com sucesso!")
     }
 
-
-
-    // ==================================================================
-    // SAQUE
-    // ==================================================================
-    sacar(banco, bancoCentral, valor){
-
-        if (this.#saldo >= valor){
-
-            // desconta o saldo
-            this.#saldo -= valor
-
-            // registra no extrato
-            this.extrato.push({
-                tipo: "Saque",
-                valor: valor,
-                saldoAtual: this.#saldo
-            });
-
-        } else {
-            console.log(`${this.nome} não tem saldo suficiente para realizar saque.`)
+    sacar(valor, bancoCentral){
+        if(this.#saldo < valor){
+            alert(`❌ Saldo insuficiente. Saldo atual: R$ ${this.#saldo}`)
+            return
         }
 
-        // registra no banco
-        banco.registroMovimentacao(this, valor, "Saque")
-
-        // registra no banco central, se necessário
-        bancoCentral.movimentacoesAltas(this, valor, "Saque")
-    }
-
-
-
-    // ==================================================================
-    // MOSTRAR EXTRATO
-    // ==================================================================
-    mostrarExtrato(){
-        console.log(`---------Extrato de ${this.nome}---------`)
-
-        // percorre cada movimentação e mostra
-        for(let movimentacao of this.extrato){
-            console.log(`${movimentacao.tipo} R$: ${movimentacao.valor} | Saldo atual: R$ ${movimentacao.saldoAtual}`)
-        }
-    }
-
-
-
-    // ==================================================================
-    // TRANSFERIR (AQUI TEM PROBLEMAS — e você vai corrigir 🙂)
-    // ==================================================================
-    transferir(destinatario, valor){
-        // esse código não funciona como deveria
-        // ele não desconta saldo do remetente corretamente
-        // ele chama depositar errado
-        // e passa destinatario errado na mensagem
-
-        if (valor <= 0){
-            console.log("❌ Valor inválido para transferência.");
-            return;
-        }
-
-        // Verifica saldo do remetente
-        if (this.#saldo < valor) {
-            console.log(`❌ ${this.nome} não tem saldo suficiente para transferir.`);
-            return;
-        }
-
-        // Desconta do remetente
         this.#saldo -= valor
-
-         // Adiciona ao destinatário usando depósito
-        destinatario.#saldo += valor
-
-        // Registra no extrato do remetente
-        this.extrato.push({
-            tipo: 'Transferencia para ${destinatario.nome}',
-            valor: valor,
-            saldoAtual: this.#saldo
-        });
-
-        // Registra no extrato do destinatário
-        destinatario.extrato.push({
-            tipo: 'Transferencia de ${this.nome}',
-            valor: valor,
-            saldoAtual: destinatario.#saldo
-        });
-
+        this.extrato.push({ tipo: "Saque", valor: valor, saldoAtual: this.#saldo })
+        this.agencia.registrarOperacao(this, valor, "Saque")
+        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Saque")
+        alert("Saque realizado com sucesso!")
     }
 
-    // -----------------------------------------------------------------
-    // EXIBIR EXTRATO
-    // -----------------------------------------------------------------
-
-    mostrarExtrato(){
-        console.log(`\n📄 --------- Extrato de ${this.nome} ---------`);
-        
-        for (let mov of this.extrato) {
-            console.log(`${mov.tipo} | Valor: R$ ${mov.valor} | Saldo após operação: R$ ${mov.saldoAtual}`);
+    transferir(destinatario, valor, bancoCentral){
+        if(valor <= 0){
+            alert("❌ Valor inválido.")
+            return
         }
+        if(this.#saldo < valor){
+            alert("❌ Saldo insuficiente para transferência.")
+            return
+        }
+
+        this.#saldo -= valor
+        destinatario.#saldo += valor // Como estamos dentro da classe, o JS permite acesso ao campo privado, mas idealmente usaria métodos
+
+        this.extrato.push({ tipo: `Enviado para ${destinatario.nome}`, valor: valor, saldoAtual: this.#saldo })
+        destinatario.extrato.push({ tipo: `Recebido de ${this.nome}`, valor: valor, saldoAtual: destinatario.getSaldo }) // Usando getter aqui para garantir
+
+        this.agencia.registrarOperacao(this, valor, "Transferência Enviada")
+        destinatario.agencia.registrarOperacao(destinatario, valor, "Transferência Recebida")
+        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Transferência")
+        
+        alert("Transferência realizada!")
     }
 }
 
-
-
 // ======================================================================
-// CRIAÇÃO DOS OBJETOS E TESTES
+// CONFIGURAÇÃO INICIAL (Backend Simulado)
 // ======================================================================
 
 let bc = new bancoCentral()
-let caixa = new agencia()
-let br = new agencia()
-let maria = new pessoa("Maria", "062.459.651-60", 50)
-let matheus = new pessoa("Matheus", "062.876.540-67", 0)
+let bancoBrasil = new banco()
+let agenciaCentro = new agencia("Centro", bancoBrasil) // Agência padrão para o exemplo
 
-// Chamadas de teste
-matheus.depositar(br, bc, 30)
-matheus.depositar(br, bc, 30000)
-matheus.depositar(br, bc, 50)
-matheus.transferir(maria, 827)
+// Lista global para controlar quem aparece na tela
+let listaClientes = []
 
-matheus.mostrarExtrato()
+// Clientes iniciais de teste
+let maria = new pessoa("Maria", "000.000.000-01", 100, agenciaCentro)
+let matheus = new pessoa("Matheus", "000.000.000-02", 50, agenciaCentro)
+listaClientes.push(maria, matheus)
+
+
+// ======================================================================
+// INTERAÇÃO COM O HTML (DOM)
+// ======================================================================
+
+// Função auxiliar para atualizar os <select> do HTML
+function atualizarSelects() {
+    const selectCliente = document.getElementById("clienteSelecionado")
+    const selectDestino = document.getElementById("clienteDestino")
+    
+    // Limpa as opções atuais
+    selectCliente.innerHTML = ""
+    selectDestino.innerHTML = ""
+
+    // Recria as opções baseadas na listaClientes
+    listaClientes.forEach((cliente, index) => {
+        let option1 = document.createElement("option")
+        option1.value = index // O valor será o índice no array
+        option1.text = `${cliente.nome} (Saldo: R$ ${cliente.getSaldo})`
+        selectCliente.add(option1)
+
+        let option2 = document.createElement("option")
+        option2.value = index
+        option2.text = cliente.nome
+        selectDestino.add(option2)
+    })
+}
+
+// 1. CRIAR CLIENTE
+function criarCliente() {
+    let nome = document.getElementById("nome").value
+    let cpf = document.getElementById("cpf").value
+    let saldo = document.getElementById("saldo").value
+
+    if(nome === "" || saldo === "") {
+        alert("Preencha todos os campos!")
+        return
+    }
+
+    // Cria o objeto e adiciona na lista
+    let novoCliente = new pessoa(nome, cpf, saldo, agenciaCentro)
+    listaClientes.push(novoCliente)
+
+    // Atualiza a interface
+    atualizarSelects()
+    alert("Cliente cadastrado com sucesso!")
+    
+    // Limpa campos
+    document.getElementById("nome").value = ""
+    document.getElementById("cpf").value = ""
+    document.getElementById("saldo").value = ""
+}
+
+// 2. DEPOSITAR
+function depositar() {
+    let index = document.getElementById("clienteSelecionado").value
+    let valor = Number(document.getElementById("valorDeposito").value)
+    
+    if(listaClientes[index]) {
+        listaClientes[index].depositar(valor, bc)
+        atualizarSelects() // Atualiza para mostrar saldo novo no select
+    }
+}
+
+// 3. SACAR
+function sacar() {
+    let index = document.getElementById("clienteSelecionado").value
+    let valor = Number(document.getElementById("valorSaque").value)
+
+    if(listaClientes[index]) {
+        listaClientes[index].sacar(valor, bc)
+        atualizarSelects()
+    }
+}
+
+// 4. TRANSFERIR
+function transferir() {
+    let indexOrigem = document.getElementById("clienteSelecionado").value
+    let indexDestino = document.getElementById("clienteDestino").value
+    let valor = Number(document.getElementById("valorTransferencia").value)
+
+    if (indexOrigem === indexDestino) {
+        alert("Não pode transferir para si mesmo!")
+        return
+    }
+
+    let remetente = listaClientes[indexOrigem]
+    let destinatario = listaClientes[indexDestino]
+
+    remetente.transferir(destinatario, valor, bc)
+    atualizarSelects()
+}
+
+// 5. MOSTRAR EXTRATO
+function mostrarExtrato() {
+    let index = document.getElementById("clienteSelecionado").value
+    let cliente = listaClientes[index]
+    let box = document.getElementById("extratoBox")
+
+    let texto = `Extrato de ${cliente.nome} (CPF: ${cliente.cpf}):\n-----------------------------------\n`
+    
+    cliente.extrato.forEach(mov => {
+        texto += `${mov.tipo} | R$ ${mov.valor} | Saldo Final: R$ ${mov.saldoAtual}\n`
+    })
+
+    box.innerText = texto
+}
+
+// Roda uma vez ao iniciar para carregar Maria e Matheus nos selects
+atualizarSelects()
