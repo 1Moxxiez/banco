@@ -76,6 +76,7 @@ class pessoa {
     cpf
     #saldo   // saldo privado → só a classe pode mexer
     extrato = []
+    agencia = []
 
     constructor(nome, cpf, saldo) {
         this.nome = nome;
