@@ -10,40 +10,53 @@
     <h1>Sistema de Banco</h1>
 
     <section id="cadastro">
-        <h2>Cadastrar Cliente</h2>
-        <input id="nome" placeholder="Nome">
-        <input id="cpf" placeholder="CPF">
-        <input id="saldo" placeholder="Saldo Inicial" type="number">
-        <button onclick="criarCliente()">Criar Cliente</button>
+        <h2>1. Abrir Nova Conta</h2>
+        <p>Escolha sua agência e informe seus dados:</p>
+        
+        <select id="escolhaAgencia">
+            
+        </select>
+        
+        <input id="nome" placeholder="Seu Nome">
+        <input id="cpf" placeholder="Seu CPF">
+        <input id="saldo" placeholder="Depósito Inicial" type="number">
+        <button onclick="solicitarAberturaConta()">Abrir Conta</button>
     </section>
 
     <section id="operacoes">
-        <h2>Operações</h2>
-        <select id="clienteSelecionado"></select>
+        <h2>2. Acessar Conta (Operações)</h2>
+        <div style="background-color: #e8f0fe; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <label><strong>Identifique-se para operar:</strong></label><br>
+            <input id="loginAgencia" placeholder="Sua Agência (ex: 001)" style="width: 120px;">
+            <input id="loginConta" placeholder="Sua Conta (ex: 123)">
+        </div>
 
         <div>
             <h3>Depósito</h3>
             <input id="valorDeposito" type="number" placeholder="Valor">
-            <button onclick="depositar()">Depositar</button>
+            <button onclick="realizarDeposito()">Depositar</button>
         </div>
 
         <div>
             <h3>Saque</h3>
             <input id="valorSaque" type="number" placeholder="Valor">
-            <button onclick="sacar()">Sacar</button>
+            <button onclick="realizarSaque()">Sacar</button>
         </div>
 
         <div>
             <h3>Transferência</h3>
-            <select id="clienteDestino"></select>
-            <input id="valorTransferencia" type="number" placeholder="Valor">
-            <button onclick="transferir()">Transferir</button>
+            <p>Para quem você vai enviar?</p>
+            <input id="destAgencia" placeholder="Agência Destino" style="width: 100px;">
+            <input id="destConta" placeholder="Conta Destino">
+            <br>
+            <input id="valorTransferencia" type="number" placeholder="Valor R$">
+            <button onclick="realizarTransferencia()">Transferir</button>
         </div>
     </section>
 
     <section>
         <h2>Extrato</h2>
-        <button onclick="mostrarExtrato()">Mostrar Extrato</button>
+        <button onclick="verExtrato()">Consultar Extrato</button>
         <pre id="extratoBox"></pre>
     </section>
 

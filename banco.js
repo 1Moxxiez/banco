@@ -1,396 +1,335 @@
 // =====================================================================
-// SISTEMA SIMPLES DE BANCO (LÓGICA DE CLASSES) - COMENTÁRIOS LINHA A LINHA
-// Abaixo cada linha importante do código está comentada para explicar o que
-// exatamente acontece, por que está ali e quais cuidados tomar.
+// 1. LÓGICA DE NEGÓCIOS (O CÉREBRO DO SISTEMA)
 // =====================================================================
+// Aqui definimos como o banco funciona, sem se preocupar ainda com a tela (HTML).
 
-// ---------------------------------------------------------------------
-// CLASSE BANCO CENTRAL - monitora movimentações acima de R$1000
-// ---------------------------------------------------------------------
+// --- CLASSE BANCO CENTRAL ---
+// Responsável por vigiar transações suspeitas ou de alto valor.
 class bancoCentral {
-    // Declaração de propriedade pública: array que vai guardar objetos
-    // representando movimentações de alto valor. Inicialmente vazio.
-    movimentacoesGrandes = []
+    movimentacoesGrandes = [] // Array (lista) para guardar o histórico
 
-    // Método público esse qui'movimentacoesAltas' recebe: pessoa (objeto), valor (número), tipo (string)
-    movimentacoesAltas(pessoa, valor, tipo){
-        // Se o 'valor' for maior que 1000, então consideramos a movimentação "grande"
+    // Método que recebe os dados de quem fez a transação
+    notificarTransacao(pessoa, valor, tipo){
+        // IF (Condicional): Só executa o bloco se o valor for maior que 1000
         if (valor > 1000){
-            // Empurra um objeto com os dados básicos para o array 'movimentacoesGrandes'
+            console.log(`📢 BC Alerta: ${tipo} de R$ ${valor} na conta ${pessoa.numeroConta}`)
+            
+            // .push(): Adiciona um novo registro dentro da lista 'movimentacoesGrandes'
             this.movimentacoesGrandes.push({
-                // Guardamos somente o nome (pode guardar CPF se quiser identificar unicamente)
-                pessoa: pessoa.nome,
-                // Valor numérico da movimentação
+                conta: pessoa.numeroConta,
                 valor: valor,
-                // Tipo: "Depósito", "Saque", "Transferência", etc.
                 tipo: tipo
             })
-            // Log no console para desenvolvimento (não conflita com a UI)
-            console.log("📢 Banco Central: movimentação de alto valor registrada.")
         }
-        // Se o valor for <= 1000, o método não faz nada (retorna undefined implicitamente)
     }
 }
 
-// ---------------------------------------------------------------------
-// CLASSE BANCO - armazena movimentações de todo o banco e suas agências
-// ---------------------------------------------------------------------
-class banco {
-    // Array que conterá objetos com registros simples de movimentação
-    movimentacoes = []
-    // Array que conterá referências às agências pertencentes a este banco
-    agencias = []
+// --- CLASSE AGÊNCIA ---
+// Define o que é uma agência e o que ela pode fazer.
+class agencia {
+    numeroAgencia // Ex: "001"
+    nome          // Ex: "Agência Centro"
+    clientes = [] // Lista vazia que vai enchendo conforme criamos contas
 
-    // Método para registrar movimentações no nível do banco
-    registroMovimentacao(pessoa, valor, tipo){
-        // Adiciona um objeto de registro ao array 'movimentacoes'
-        this.movimentacoes.push({
-            pessoa: pessoa.nome, // o nome do cliente (para leitura humana)
-            valor: valor,        // o valor movimentado
-            tipo: tipo           // o tipo de operação
-        })
-        // Log informativo
-        console.log("💼 Banco: movimentação registrada.")
+    // CONSTRUCTOR: Executado automaticamente quando fazemos 'new agencia()'
+    constructor(numeroAgencia, nome){
+        this.numeroAgencia = numeroAgencia
+        this.nome = nome
+    }
+
+    // Método Fábrica: A agência cria o cliente e gera o número da conta
+    abrirConta(nome, cpf, saldoInicial){
+        // Math.random(): Gera número aleatório. Math.floor: Arredonda.
+        let numeroContaGerado = Math.floor(100 + Math.random() * 900) 
+        //A fórmula mágica:Sempre que quiser um intervalo entre um Mínimo e um Máximo, a 
+        // fórmula é: Math.random() * (Maximo - Minimo) + Minimo
+        // No seu caso: Máximo: 1000 (exclusivo)Mínimo: 100
+        //Se você quer números de 3 dígitos, o menor é 100 e o maior é 999.
+        //A distância entre eles é: 999 - 100 = 899 (arredondando, são 900 possibilidades de números).
+        // 1000 - 100 = 900.
+        
+
+        // 'new pessoa': Cria o objeto do cliente na memória
+        // 'this': Passa a própria agência para dentro do cliente, criando o vínculo
+        let novoCliente = new pessoa(nome, cpf, saldoInicial, this, numeroContaGerado)
+        
+        // Adiciona esse novo cliente na lista da agência
+        this.clientes.push(novoCliente)
+
+        return novoCliente // Devolve o cliente criado para quem chamou a função
+    }
+
+    // Método de Busca: Varre a lista de clientes procurando um número específico
+    buscarCliente(numeroConta){
+        // .find(): Procura item por item. Se encontrar, retorna o cliente. Se não, retorna undefined.
+        return this.clientes.find(cliente => cliente.numeroConta === numeroConta)
+        //Tradução: "Dado um cliente, verifique se o número da conta dele é igual ao número que eu estou procurando."
     }
 }
 
-// ---------------------------------------------------------------------
-// CLASSE AGÊNCIA - representa uma agência específica do banco
-// OBS: ela estende (herda) 'banco', portanto tem 'movimentacoes' e 'agencias'
-// ---------------------------------------------------------------------
-class agencia extends banco {
-    // Lista de clientes dessa agência (cada cliente é uma instância de 'pessoa')
-    clientes = []
-    // Propriedades para armazenar nome da agência e referência ao banco dono
-    nome
-    banco
-
-    // Construtor chamado quando fazemos "new agencia(nome, banco)"
-    constructor(nome, banco){
-        super() // Chama o construtor da classe pai (banco). Aqui garante que movimentacoes/agencias existam.
-        this.nome = nome // Define o nome da agência
-        this.banco = banco // Guarda referência para o banco "pai"
-        // Registra esta agência dentro do array 'agencias' do banco dono.
-        // Isso permite que o banco tenha noção de suas agências.
-        banco.agencias.push(this)
-    }
-
-    // Método para registrar uma operação local e também repassar para o banco
-    registrarOperacao(pessoa, valor, tipo){
-        // Registra a movimentação na própria agência (array herdado de "banco")
-        this.movimentacoes.push({
-            pessoa: pessoa.nome,
-            valor: valor,
-            tipo: tipo
-        })
-
-        // Em seguida, registra também no banco geral usando o método do banco
-        // Note: this.banco é a instância de 'banco' passada ao construtor
-        this.banco.registroMovimentacao(pessoa, valor, tipo)
-    }
-
-    // Método que simplesmente chama o serviço do Banco Central para triagem
-    registrarBancoCentral(bc, pessoa, valor, tipo){
-        // Encaminha os parâmetros: o banco central decide se registra ou não
-        bc.movimentacoesAltas(pessoa, valor, tipo)
-    }
-}
-
-// ---------------------------------------------------------------------
-// CLASSE PESSOA - representa um cliente com saldo PRIVADO e histórico (extrato)
-// ---------------------------------------------------------------------
+// --- CLASSE PESSOA (CLIENTE) ---
 class pessoa {
     nome
     cpf
-    #saldo // campo privado: só métodos da classe podem acessá-lo diretamente
-    extrato = [] // array de objetos com o histórico (tipo, valor, saldo atual)
-    agencia   // referência para a agência dessa pessoa
+    #saldo // O '#' torna este dado PRIVADO. Ninguém muda o saldo sem passar pelos métodos.
+    agencia 
+    numeroConta 
+    extrato = [] // Histórico pessoal do cliente
 
-    // Construtor da classe pessoa
-    constructor(nome, cpf, saldo, agencia){
-        this.nome = nome // nome textual do cliente
-        this.cpf = cpf   // CPF (string) — poderia validar formato aqui
-        // Armazena o saldo desde já convertido em número (evita problemas com string)
-        this.#saldo = Number(saldo)
-        this.agencia = agencia // referência à agência onde o cliente foi criado
-
-        // Ao criar a pessoa, adicionamos automaticamente ela à lista de clientes da agência
-        // Isso evita ter que inserir manualmente na agência após criar a pessoa
-        agencia.clientes.push(this)
+    constructor(nome, cpf, saldo, agenciaObj, numeroConta){
+        this.nome = nome
+        this.cpf = cpf
+        this.#saldo = Number(saldo) // Number(): Garante que o texto vire número matemático
+        this.agencia = agenciaObj
+        this.numeroConta = numeroConta
     }
 
-    // Getter para permitir recuperação do saldo de fora da classe sem expor o campo privado
-    get getSaldo(){
-        // Retorna o valor do campo #saldo. Não permite alteração direta.
-        return this.#saldo
+    // Ação de Depositar
+    depositar(valor, bc){
+        if(valor <= 0) return alert("Valor inválido") // Validação de segurança
+        
+        this.#saldo += valor // Soma ao saldo privado
+        this.registrar("Depósito", valor) // Salva no extrato
+        bc.notificarTransacao(this, valor, "Depósito") // Avisa o Banco Central
+        alert(`Depósito de R$ ${valor} realizado!`)
     }
 
-    // ---------------------------------------------------------------
-    // Método: depositar
-    // Parâmetros: valor (número), bancoCentral (instância de bancoCentral)
-    // ---------------------------------------------------------------
-    depositar(valor, bancoCentral){
-        // Validação: depósitos devem ser positivos
-        if(valor <= 0){
-            alert("❌ Valor inválido para depósito.") // Feedback ao usuário
-            return // interrompe a execução do método
-        }
+    // Ação de Sacar
+    sacar(valor, bc){
+        if(this.#saldo < valor) return alert("Saldo insuficiente!") // Validação de saldo
+        
+        this.#saldo -= valor // Subtrai do saldo
+        this.registrar("Saque", valor)
+        bc.notificarTransacao(this, valor, "Saque")
+        alert(`Saque realizado! Saldo restante: R$ ${this.#saldo}`)
+    }
 
-        // Atualiza o saldo privado adicionando o valor informado
+    // Ação de Transferir (Interage com outra pessoa)
+    transferir(destinatario, valor, bc){
+        if(this.#saldo < valor) return alert("Saldo insuficiente para transferir.")
+
+        this.#saldo -= valor // Tira do meu saldo
+        
+        // Chama o método da OUTRA pessoa para ela receber o dinheiro
+        destinatario.receberTransferencia(valor, this.nome)
+        
+        this.registrar(`Enviado para ${destinatario.nome}`, valor)
+        bc.notificarTransacao(this, valor, "Transferência")
+        alert("Transferência realizada com sucesso!")
+    }
+
+    // Função auxiliar para quando alguém me manda dinheiro
+    receberTransferencia(valor, remetenteNome){
         this.#saldo += valor
-
-        // Registra a operação no extrato local (para histórico do cliente)
-        // Salvamos tipo, valor e o saldo após a operação
-        this.extrato.push({ tipo: "Depósito", valor: valor, saldoAtual: this.#saldo })
-
-        // Registra a operação na agência (registro local) — o método também registra no banco
-        this.agencia.registrarOperacao(this, valor, "Depósito")
-
-        // Verifica/avisa Banco Central caso a movimentação seja de alto valor
-        // (a agência delega essa responsabilidade ao objeto 'bc')
-        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Depósito")
-
-        // Confirmação visual para o usuário (pode ser substituído por UI mais elegante)
-        alert("Depósito realizado com sucesso!")
+        this.extrato.push({
+            data: new Date().toLocaleTimeString(), // Pega a hora atual do computador
+            tipo: `Recebido de ${remetenteNome}`,
+            valor: valor,
+            saldo: this.#saldo
+        })
     }
 
-    // ---------------------------------------------------------------
-    // Método: sacar
-    // ---------------------------------------------------------------
-    sacar(valor, bancoCentral){
-        // Verifica se o cliente tem saldo suficiente antes de sacar
-        if(this.#saldo < valor){
-            // Alerta com saldo atual (lembre-se: #saldo é número)
-            alert(`❌ Saldo insuficiente. Saldo atual: R$ ${this.#saldo}`)
-            return
-        }
-
-        // Diminui o saldo privado
-        this.#saldo -= valor
-
-        // Registra no extrato
-        this.extrato.push({ tipo: "Saque", valor: valor, saldoAtual: this.#saldo })
-
-        // Registra na agência e no banco
-        this.agencia.registrarOperacao(this, valor, "Saque")
-
-        // Verifica/avisa Banco Central para possíveis movimentações altas
-        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Saque")
-
-        // Feedback ao usuário
-        alert("Saque realizado com sucesso!")
+    // Função genérica para gravar no extrato
+    //O .push() é o comando que adiciona um novo item no final da lista.
+    registrar(tipo, valor){
+        this.extrato.push({
+            data: new Date().toLocaleTimeString(),
+            tipo: tipo,
+            valor: valor,
+            saldo: this.#saldo
+        })
     }
 
-    // ---------------------------------------------------------------
-    // Método: transferir
-    // Parâmetros: destinatario (instância de pessoa), valor (número), bancoCentral
-    // Observação: aqui acessamos diretamente destinatario.#saldo porque estamos
-    // dentro da mesma classe — o JavaScript permite acesso ao campo privado
-    // quando o acesso ocorre em métodos da mesma definição de classe.
-    // ---------------------------------------------------------------
-    transferir(destinatario, valor, bancoCentral){
-        // Validação: valor precisa ser positivo
-        if(valor <= 0){
-            alert("❌ Valor inválido.")
-            return
-        }
-
-        // Validação: saldo suficiente
-        if(this.#saldo < valor){
-            alert("❌ Saldo insuficiente para transferência.")
-            return
-        }
-
-        // Debita do remetente
-        this.#saldo -= valor
-
-        // Credita no destinatário — acesso direto ao campo privado do outro objeto
-        // Observação: isso funciona porque estamos no contexto da classe 'pessoa'.
-        destinatario.#saldo += valor
-
-        // Registra no extrato do remetente informando pra quem enviou
-        this.extrato.push({ tipo: `Enviado para ${destinatario.nome}`, valor: valor, saldoAtual: this.#saldo })
-
-        // Registra no extrato do destinatário informando de quem recebeu
-        // Usamos destinatario.getSaldo (getter) para ler o saldo atual do destinatário
-        destinatario.extrato.push({ tipo: `Recebido de ${this.nome}`, valor: valor, saldoAtual: destinatario.getSaldo })
-
-        // Registra nas respectivas agências e no banco
-        this.agencia.registrarOperacao(this, valor, "Transferência Enviada")
-        destinatario.agencia.registrarOperacao(destinatario, valor, "Transferência Recebida")
-
-        // Envia aviso ao Banco Central (se necessário)
-        this.agencia.registrarBancoCentral(bancoCentral, this, valor, "Transferência")
-
-        // Confirmação para o usuário
-        alert("Transferência realizada!")
-    }
+    // Getter: Permite ler o saldo (que é privado) sem deixar alterar manualmente
+    getSaldo(){ return this.#saldo }
 }
 
 // ======================================================================
-// CONFIGURAÇÃO INICIAL (instâncias que simulam o backend)
+// 2. CONFIGURAÇÃO INICIAL (SIMULANDO UM BANCO DE DADOS)
 // ======================================================================
 
-// Cria uma instância do Banco Central (objeto que vai monitorar altas movimentações)
-let bc = new bancoCentral()
+const BC = new bancoCentral() // Inicializa o sistema do BC
 
-// Cria uma instância do Banco "geral" (onde as agências serão registradas)
-let bancoBrasil = new banco()
-
-// Cria uma agência chamada "Centro" e registra ela dentro do bancoBrasil
-let agenciaCentro = new agencia("Centro", bancoBrasil) // Agência padrão para o exemplo
-
-// Lista global usada pela interface para popular selects e manipular clientes
-let listaClientes = []
-
-// Clientes iniciais de teste (serão automaticamente adicionados `agenciaCentro.clientes` no construtor)
-let maria = new pessoa("Maria", "000.000.000-01", 100, agenciaCentro)
-let matheus = new pessoa("Matheus", "000.000.000-02", 50, agenciaCentro)
-
-// Coloca os clientes na lista usada pelo front-end
-listaClientes.push(maria, matheus)
+// Criamos as agências que existem no mundo real do nosso sistema
+const agenciasDisponiveis = [
+    new agencia("001", "Agência Centro"), 
+    new agencia("002", "Agência Norte"),
+    new agencia("003", "Agência Sul") 
+]
 
 
 // ======================================================================
-// INTERAÇÃO COM O HTML (DOM) - FUNÇÕES CHAMADAS PELOS BOTÕES NA PÁGINA
+// 3. INTERAÇÃO COM O USUÁRIO (LIGANDO JS AO HTML)
 // ======================================================================
 
-// Função que atualiza os elementos <select> conforme o estado de 'listaClientes'
-function atualizarSelects() {
-    // pega o select onde escolhemos o cliente que fará a operação
-    const selectCliente = document.getElementById("clienteSelecionado")
-    // pega o select onde escolhemos o cliente destino da transferência
-    const selectDestino = document.getElementById("clienteDestino")
+// --- FUNÇÃO AUTOMÁTICA ---
+// Preenche o menu <select> com as agências criadas acima
+function carregarAgenciasNoHTML() {
+    const select = document.getElementById("escolhaAgencia") // Pega o elemento HTML
+    
+    select.innerHTML = "" // Limpa opções antigas (se houver)
 
-    // limpa todo conteúdo anterior (remove <option>s já existentes)
-    selectCliente.innerHTML = ""
-    selectDestino.innerHTML = ""
+    // Tradução: "Para cada item dentro da lista agenciasDisponiveis, 
+    // execute o código abaixo e chame o item atual de agencia."
+    agenciasDisponiveis.forEach(agencia => {
+        let opcao = document.createElement("option") // Cria a tag <option>
+        
+        opcao.value = agencia.numeroAgencia // O valor que o código lê (001)
+        opcao.text = `${agencia.nome} (${agencia.numeroAgencia})` // O texto que o usuário vê
+        
+        select.add(opcao) // Adiciona no menu
 
-    // percorre cada cliente e cria uma <option> para cada select
-    listaClientes.forEach((cliente, index) => {
-        // === opção para o select de cliente (exibe nome e saldo) ===
-        let option1 = document.createElement("option") // cria elemento option
-        option1.value = index // definimos o value como o índice do array — fácil de recuperar
-        option1.text = `${cliente.nome} (Saldo: R$ ${cliente.getSaldo})` // label com saldo
-        selectCliente.add(option1) // adiciona ao select
-
-        // === opção para select de destino (apenas nome) ===
-        let option2 = document.createElement("option")
-        option2.value = index
-        option2.text = cliente.nome
-        selectDestino.add(option2)
-    })
-}
-
-// ---------------------------------------------------------------
-// 1. CRIAR CLIENTE — lida com inputs do formulário de cadastro
-// ---------------------------------------------------------------
-function criarCliente() {
-    // Lê valores direto dos inputs no DOM
-    let nome = document.getElementById("nome").value
-    let cpf = document.getElementById("cpf").value
-    let saldo = document.getElementById("saldo").value
-
-    // Validação básica: nome e saldo não podem estar vazios
-    if(nome === "" || saldo === "") {
-        alert("Preencha todos os campos!")
-        return
-    }
-
-    // Cria uma nova instância de 'pessoa'. O construtor já adiciona na agência.
-    let novoCliente = new pessoa(nome, cpf, saldo, agenciaCentro)
-
-    // Adiciona o novo cliente na lista que o front-end usa
-    listaClientes.push(novoCliente)
-
-    // Atualiza os selects para mostrar o novo cliente imediatamente
-    atualizarSelects()
-    alert("Cliente cadastrado com sucesso!")
-
-    // Limpa os campos do formulário para nova inserção
-    document.getElementById("nome").value = ""
-    document.getElementById("cpf").value = ""
-    document.getElementById("saldo").value = ""
-}
-
-// ---------------------------------------------------------------
-// 2. DEPOSITAR — pega índice do select e chama o método do cliente
-// ---------------------------------------------------------------
-function depositar() {
-    // Recupera o índice selecionado (string) e o valor do input
-    let index = document.getElementById("clienteSelecionado").value
-    let valor = Number(document.getElementById("valorDeposito").value)
-
-    // Checa se existe um cliente naquele índice e chama o método depositar
-    if(listaClientes[index]) {
-        listaClientes[index].depositar(valor, bc)
-        // Atualiza interface para refletir novo saldo
-        atualizarSelects()
-    }
-}
-
-// ---------------------------------------------------------------
-// 3. SACAR — muito parecido com depositar
-// ---------------------------------------------------------------
-function sacar() {
-    let index = document.getElementById("clienteSelecionado").value
-    let valor = Number(document.getElementById("valorSaque").value)
-
-    if(listaClientes[index]) {
-        listaClientes[index].sacar(valor, bc)
-        atualizarSelects()
-    }
-}
-
-// ---------------------------------------------------------------
-// 4. TRANSFERIR
-// ---------------------------------------------------------------
-function transferir() {
-    // índices do remetente e destinatário
-    let indexOrigem = document.getElementById("clienteSelecionado").value
-    let indexDestino = document.getElementById("clienteDestino").value
-    let valor = Number(document.getElementById("valorTransferencia").value)
-
-    // Previne transferência para si mesmo (mesmo índice)
-    if (indexOrigem === indexDestino) {
-        alert("Não pode transferir para si mesmo!")
-        return
-    }
-
-    // Recupera referências aos objetos pessoa
-    let remetente = listaClientes[indexOrigem]
-    let destinatario = listaClientes[indexDestino]
-
-    // Executa o método transferir do remetente (vai atualizar ambos os extratos)
-    remetente.transferir(destinatario, valor, bc)
-
-    // Atualiza a interface para refletir novos saldos
-    atualizarSelects()
-}
-
-// ---------------------------------------------------------------
-// 5. MOSTRAR EXTRATO
-// ---------------------------------------------------------------
-function mostrarExtrato() {
-    // Pega o cliente selecionado e o elemento <pre> onde mostraremos o texto
-    let index = document.getElementById("clienteSelecionado").value
-    let cliente = listaClientes[index]
-    let box = document.getElementById("extratoBox")
-
-    // Inicia uma string formatada com cabeçalho
-    let texto = `Extrato de ${cliente.nome} (CPF: ${cliente.cpf}):
------------------------------------
-`
-
-    // Para cada item do extrato, concatena uma linha com detalhes
-    cliente.extrato.forEach(mov => {
-        texto += `${mov.tipo} | R$ ${mov.valor} | Saldo Final: R$ ${mov.saldoAtual}
-`
+        //Exemplo de como fica o menu:
+        // <select id="escolhaAgencia">
+        // <option value="001">Agência Centro (001)</option>
+        // <option value="002">Agência Norte (002)</option>
+        // <option value="003">Agência Sul (003)</option>
+        // </select>
     })
 
-    // Define o texto no elemento <pre> (mantém quebras de linha)
-    box.innerText = texto
 }
 
-// Ao carregar o script, inicia os selects com os clientes existentes
-atualizarSelects()
+// Roda essa função imediatamente ao abrir a página
+carregarAgenciasNoHTML()
+
+
+// --- 1. BOTÃO ABRIR CONTA ---
+function solicitarAberturaConta() {
+    // Pega os elementos do HTML (inputs e selects)
+    let numAgencia = document.getElementById("escolhaAgencia").value
+    let nomeInput = document.getElementById("nome")
+    let cpfInput = document.getElementById("cpf")
+    let saldoInput = document.getElementById("saldo")
+
+    // Verifica se algum campo está vazio
+    if(!nomeInput.value || !cpfInput.value || !saldoInput.value) return alert("Preencha tudo!")
+
+    // Busca qual objeto Agência corresponde ao número escolhido
+    // 2. "Falo para caçar dentro dessa lista"
+    // O .find() é o caçador. Ele pega cada 'agencia' da lista e testa.
+    // 3. "Qual agência que o número dela bate com o número que eu peguei"
+    // O código pergunta: "O número desta agência é IGUAL ao do HTML?"
+    let agenciaSelecionada = agenciasDisponiveis.find(ag => ag.numeroAgencia === numAgencia)
+    
+    // Manda a agência criar a conta
+    let novoCliente = agenciaSelecionada.abrirConta(nomeInput.value, cpfInput.value, saldoInput.value)
+
+    // Mostra o resultado
+    alert(`✅ Conta Criada!\n\nCliente: ${novoCliente.nome}\nAgência: ${novoCliente.agencia.nome}\nCONTA: ${novoCliente.numeroConta}\n\nGuarde esse número!`)
+
+    // Limpa os campos para o próximo uso
+    nomeInput.value = ""
+    cpfInput.value = ""
+    saldoInput.value = ""
+}
+
+
+// --- FUNÇÃO DE LOGIN (Usada por Depósito, Saque e Extrato) ---
+// Ela lê os campos "Sua Agência" e "Sua Conta" e tenta achar o cliente
+function buscarClientePorLogin() {
+    //Use sem .value quando quiser mudar a cor da caixa, esconder a caixa ou mudar o tamanho dela.
+    //Use com .value quando quiser saber o que o usuário escreveu lá dentro.
+   
+    let numAgencia = document.getElementById("loginAgencia").value
+    let numConta = document.getElementById("loginConta").value
+
+    // 1. Acha a agência
+    let agenciaEncontrada = agenciasDisponiveis.find(ag => ag.numeroAgencia === numAgencia)
+    
+    if (!agenciaEncontrada) {
+        alert("Agência não encontrada! Verifique o número.")
+        return null // Para a execução aqui
+    }
+
+    // 2. Acha a conta dentro daquela agência
+    let clienteEncontrado = agenciaEncontrada.buscarCliente(numConta)
+
+    if (!clienteEncontrado) {
+        alert("Conta não encontrada! Verifique o número.")
+        return null
+    }
+
+    return clienteEncontrado // Devolve o cliente achado
+}
+
+
+// --- 2. BOTÃO DEPOSITAR ---
+function realizarDeposito() {
+    let cliente = buscarClientePorLogin() // Tenta logar
+    
+    if(cliente) { // Se o login deu certo...
+        let valorInput = document.getElementById("valorDeposito")
+        let valor = Number(valorInput.value)
+        
+        cliente.depositar(valor, BC) // Executa a lógica da classe
+        
+        valorInput.value = "" // Limpa só o valor
+    }
+}
+
+
+// --- 3. BOTÃO SACAR ---
+function realizarSaque() {
+    let cliente = buscarClientePorLogin()
+    
+    if(cliente) {
+        let valorInput = document.getElementById("valorSaque")
+        let valor = Number(valorInput.value)
+        
+        cliente.sacar(valor, BC)
+
+        valorInput.value = ""
+    }
+}
+
+
+// --- 4. BOTÃO EXTRATO ---
+function verExtrato() {
+    let cliente = buscarClientePorLogin()
+    
+    if(cliente) {
+        let box = document.getElementById("extratoBox") // Pega a área de texto <pre>
+        
+        // Monta o cabeçalho do texto
+        let texto = `Extrato de ${cliente.nome} | Conta: ${cliente.numeroConta}\n----------------------------------\n`
+        
+        // Loop: Para cada movimento no extrato, adiciona uma linha de texto
+        cliente.extrato.forEach(mov => {
+            texto += `${mov.data} - ${mov.tipo}: R$ ${mov.valor} (Saldo: R$ ${mov.saldo})\n`
+        })
+        
+        // Joga o texto final na tela
+        box.innerText = texto
+    }
+}
+
+
+// --- 5. BOTÃO TRANSFERIR ---
+function realizarTransferencia() {
+    // Quem envia (usa o login lá de cima)
+    let remetente = buscarClientePorLogin()
+    if(!remetente) return
+
+    // Quem recebe (pega os inputs específicos da área de transferência)
+    let agDestinoInput = document.getElementById("destAgencia")
+    let contaDestinoInput = document.getElementById("destConta")
+    let valorInput = document.getElementById("valorTransferencia")
+
+    let valor = Number(valorInput.value)
+
+    // Valida Agência de Destino
+    let agenciaDest = agenciasDisponiveis.find(ag => ag.numeroAgencia === agDestinoInput.value)
+    if(!agenciaDest) return alert("Agência de destino não existe.")
+
+    // Valida Conta de Destino
+    let destinatario = agenciaDest.buscarCliente(contaDestinoInput.value)
+    if(!destinatario) return alert("Conta de destino não existe.")
+
+    // Executa a transferência na classe Pessoa
+    remetente.transferir(destinatario, valor, BC)
+
+    // Limpa os campos da transferência
+    agDestinoInput.value = ""
+    contaDestinoInput.value = ""
+    valorInput.value = ""
+}
