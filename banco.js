@@ -12,7 +12,6 @@ class bancoCentral {
     notificarTransacao(pessoa, valor, tipo){
         // IF (Condicional): Só executa o bloco se o valor for maior que 1000
         if (valor > 1000){
-            console.log(`📢 BC Alerta: ${tipo} de R$ ${valor} na conta ${pessoa.numeroConta}`)
             
             // .push(): Adiciona um novo registro dentro da lista 'movimentacoesGrandes'
             this.movimentacoesGrandes.push({
@@ -40,7 +39,15 @@ class agencia {
     // Método Fábrica: A agência cria o cliente e gera o número da conta
     abrirConta(nome, cpf, saldoInicial){
         // Math.random(): Gera número aleatório. Math.floor: Arredonda.
-        let numeroContaGerado = Math.floor(100 + Math.random() * 900) 
+        let sequencia = this.clientes.length + 1 
+        //O .length (comprimento) é uma propriedade que diz quantos itens tem dentro da lista.
+
+        // 2. Transforma em texto e garante 3 dígitos com ZEROS a esquerda
+        // Ex: 1 vira "001", 10 vira "010", 100 vira "100"
+        let numeroContaGerado = sequencia.toString().padStart(3,"0")
+        
+
+        //Math.floor(100 + Math.random() * 900) 
         //A fórmula mágica:Sempre que quiser um intervalo entre um Mínimo e um Máximo, a 
         // fórmula é: Math.random() * (Maximo - Minimo) + Minimo
         // No seu caso: Máximo: 1000 (exclusivo)Mínimo: 100
@@ -64,6 +71,17 @@ class agencia {
         // .find(): Procura item por item. Se encontrar, retorna o cliente. Se não, retorna undefined.
         return this.clientes.find(cliente => cliente.numeroConta === numeroConta)
         //Tradução: "Dado um cliente, verifique se o número da conta dele é igual ao número que eu estou procurando."
+    }
+
+    // Função genérica para gravar no extrato
+    //O .push() é o comando que adiciona um novo item no final da lista.
+    registrar(tipo, valor, pessoa){
+        pessoa.extrato.push({
+            data: new Date().toLocaleTimeString(),
+            tipo: tipo,
+            valor: valor,
+            saldo: pessoa.getSaldo() // O método getSaldo() é definido na classe pessoa pq é priv
+        })
     }
 }
 
@@ -89,7 +107,7 @@ class pessoa {
         if(valor <= 0) return alert("Valor inválido") // Validação de segurança
         
         this.#saldo += valor // Soma ao saldo privado
-        this.registrar("Depósito", valor) // Salva no extrato
+        this.agencia.registrar("Depósito", valor, this) // Salva no extrato
         bc.notificarTransacao(this, valor, "Depósito") // Avisa o Banco Central
         alert(`Depósito de R$ ${valor} realizado!`)
     }
@@ -99,7 +117,7 @@ class pessoa {
         if(this.#saldo < valor) return alert("Saldo insuficiente!") // Validação de saldo
         
         this.#saldo -= valor // Subtrai do saldo
-        this.registrar("Saque", valor)
+        this.agencia.registrar("Saque", valor, this) //this.agencia.registrar pq eu tenho que chama a minha agencia pra fazer agr
         bc.notificarTransacao(this, valor, "Saque")
         alert(`Saque realizado! Saldo restante: R$ ${this.#saldo}`)
     }
@@ -113,7 +131,7 @@ class pessoa {
         // Chama o método da OUTRA pessoa para ela receber o dinheiro
         destinatario.receberTransferencia(valor, this.nome)
         
-        this.registrar(`Enviado para ${destinatario.nome}`, valor)
+        this.agencia.registrar(`Enviado para ${destinatario.nome}`, valor, this)
         bc.notificarTransacao(this, valor, "Transferência")
         alert("Transferência realizada com sucesso!")
     }
@@ -129,16 +147,6 @@ class pessoa {
         })
     }
 
-    // Função genérica para gravar no extrato
-    //O .push() é o comando que adiciona um novo item no final da lista.
-    registrar(tipo, valor){
-        this.extrato.push({
-            data: new Date().toLocaleTimeString(),
-            tipo: tipo,
-            valor: valor,
-            saldo: this.#saldo
-        })
-    }
 
     // Getter: Permite ler o saldo (que é privado) sem deixar alterar manualmente
     getSaldo(){ return this.#saldo }
@@ -156,6 +164,14 @@ const agenciasDisponiveis = [
     new agencia("002", "Agência Norte"),
     new agencia("003", "Agência Sul") 
 ]
+
+agenciasDisponiveis[1].abrirConta("Alberta", "231.231.231-31", 122)
+
+// 2. Criar o João na Agência Centro (Índice 0)
+agenciasDisponiveis[0].abrirConta("João Silva", "999.888.777-00", 5000)
+
+// 3. Criar a Maria na Agência Sul (Índice 2)
+agenciasDisponiveis[2].abrirConta("Maria Souza", "111.222.333-44", 10)
 
 
 // ======================================================================
@@ -256,7 +272,7 @@ function buscarClientePorLogin() {
 // --- 2. BOTÃO DEPOSITAR ---
 function realizarDeposito() {
     let cliente = buscarClientePorLogin() // Tenta logar
-    
+
     if(cliente) { // Se o login deu certo...
         let valorInput = document.getElementById("valorDeposito")
         let valor = Number(valorInput.value)
