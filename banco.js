@@ -109,7 +109,7 @@ class pessoa {
         this.#saldo += valor // Soma ao saldo privado
         this.agencia.registrar("Depósito", valor, this) // Salva no extrato
         bc.notificarTransacao(this, valor, "Depósito") // Avisa o Banco Central
-        alert(`Depósito de R$ ${valor} realizado!`)
+        alert(`Depósito de R$ ${valor} realizado! Saldo atual: R$ ${this.#saldo}`)
     }
 
     // Ação de Sacar
@@ -231,7 +231,7 @@ function solicitarAberturaConta() {
     let novoCliente = agenciaSelecionada.abrirConta(nomeInput.value, cpfInput.value, saldoInput.value)
 
     // Mostra o resultado
-    alert(`✅ Conta Criada!\n\nCliente: ${novoCliente.nome}\nAgência: ${novoCliente.agencia.nome}\nCONTA: ${novoCliente.numeroConta}\n\nGuarde esse número!`)
+    alert(`✅ Conta Criada!\n\nCliente: ${novoCliente.nome}\nAgência: ${novoCliente.agencia.nome}\nConta: ${novoCliente.numeroConta}\n\nGuarde esse número!`)
 
     // Limpa os campos para o próximo uso
     nomeInput.value = ""
